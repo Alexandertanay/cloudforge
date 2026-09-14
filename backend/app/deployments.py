@@ -42,14 +42,12 @@ def create_deployment(
     deployment: DeploymentCreate,
     db: Session = Depends(get_db)
 ):
-    # Validate deployment against CloudForge policies
     policy_result = validate_deployment(
         environment=deployment.environment,
         region=deployment.region,
         instance_type=deployment.instance_type
     )
 
-    # Reject deployment if policy fails
     if not policy_result["allowed"]:
         raise HTTPException(
             status_code=400,
@@ -59,10 +57,8 @@ def create_deployment(
             }
         )
 
-    # Generate deployment ID
     deployment_id = str(uuid4())
 
-    # Create database record
     new_deployment = Deployment(
         id=deployment_id,
         project_id=deployment.project_id,
@@ -74,7 +70,6 @@ def create_deployment(
         created_at=datetime.now(timezone.utc)
     )
 
-    # Save deployment
     db.add(new_deployment)
     db.commit()
     db.refresh(new_deployment)
@@ -130,12 +125,17 @@ def plan_deployment(
             detail="Deployment not found"
         )
 
-    # Update status before Terraform execution
+    if deployment.status in ["applying", "deployed"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Deployment cannot be planned while status is '{deployment.status}'"
+        )
+
     deployment.status = "planning"
     db.commit()
 
     try:
-        result = run_terraform_plan()
+        result = run_terraform_plan(deployment.environment)
 
         if result["success"]:
             deployment.status = "planned"
@@ -159,6 +159,8 @@ def plan_deployment(
             status_code=500,
             detail=f"Terraform plan failed: {str(error)}"
         )
+
+
 @router.post("/{deployment_id}/cancel")
 def cancel_deployment(
     deployment_id: str,
@@ -186,7 +188,9 @@ def cancel_deployment(
     db.refresh(deployment)
 
     return deployment_response(deployment)
-    @router.post("/{deployment_id}/status")
+
+
+@router.post("/{deployment_id}/status")
 def update_deployment_status(
     deployment_id: str,
     status: str,
