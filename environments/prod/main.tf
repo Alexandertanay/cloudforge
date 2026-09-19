@@ -1,5 +1,10 @@
+
 # =========================
 # CloudForge Production Environment
+# =========================
+
+# =========================
+# VPC
 # =========================
 
 module "vpc" {
@@ -19,6 +24,31 @@ module "vpc" {
   az_2 = "ap-south-1b"
 }
 
+# =========================
+# IAM
+# =========================
+
+module "iam" {
+  source = "../../modules/iam"
+
+  environment = "prod"
+}
+
+# =========================
+# ECR
+# =========================
+
+module "ecr" {
+  source = "../../modules/ecr"
+
+  repository_name = "cloudforge-demo-prod"
+  environment     = "prod"
+}
+
+# =========================
+# EC2
+# =========================
+
 module "ec2" {
   source = "../../modules/ec2"
 
@@ -29,5 +59,7 @@ module "ec2" {
   vpc_id    = module.vpc.vpc_id
 
   environment = "prod"
- instance_profile_name = module.iam.instance_profile_name
+
+  instance_profile_name = module.iam.instance_profile_name
 }
+

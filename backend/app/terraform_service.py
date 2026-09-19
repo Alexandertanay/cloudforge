@@ -2,26 +2,42 @@ import subprocess
 from pathlib import Path
 
 
-# CloudForge backend:
-# C:\Users\ASUS\CloudForge\terraform\backend
-#
-# Terraform dev environment:
-# C:\Users\ASUS\CloudForge\terraform\environments\dev
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-TERRAFORM_DIR = (
-    Path(__file__).resolve().parent.parent / "environments" / "dev"
-)
+TERRAFORM_ENVIRONMENTS_DIR = PROJECT_ROOT / "environments"
 
 
-def run_terraform_plan():
-    """
-    Runs Terraform plan for the CloudForge dev environment.
-    Does not create or modify infrastructure.
-    """
+ALLOWED_ENVIRONMENTS = {
+    "dev",
+    "prod"
+}
+
+
+def get_terraform_directory(environment: str) -> Path:
+    if environment not in ALLOWED_ENVIRONMENTS:
+        raise ValueError(
+            f"Unsupported Terraform environment: {environment}"
+        )
+
+    terraform_dir = TERRAFORM_ENVIRONMENTS_DIR / environment
+
+    if not terraform_dir.exists():
+        raise FileNotFoundError(
+            f"Terraform environment directory not found: {terraform_dir}"
+        )
+
+    return terraform_dir
+
+
+def run_terraform_command(
+    environment: str,
+    command: list[str]
+):
+    terraform_dir = get_terraform_directory(environment)
 
     result = subprocess.run(
-        ["terraform", "plan"],
-        cwd=TERRAFORM_DIR,
+        ["terraform"] + command,
+        cwd=str(terraform_dir),
         capture_output=True,
         text=True
     )
@@ -32,3 +48,17 @@ def run_terraform_plan():
         "stdout": result.stdout,
         "stderr": result.stderr
     }
+
+
+def run_terraform_init(environment: str):
+    return run_terraform_command(
+        environment,
+        ["init"]
+    )
+
+
+def run_terraform_plan(environment: str):
+    return run_terraform_command(
+        environment,
+        ["plan"]
+    )
