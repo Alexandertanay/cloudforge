@@ -29,4 +29,5 @@ module "ec2" {
   vpc_id    = module.vpc.vpc_id
 
   environment = "prod"
+ instance_profile_name = module.iam.instance_profile_name
 }
