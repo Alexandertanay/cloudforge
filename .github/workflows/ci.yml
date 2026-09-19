@@ -1,14 +1,22 @@
+```yaml
 name: CloudForge CI
 
 on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
 
+
 jobs:
+
+  # ==========================================
+  # Backend Tests
+  # ==========================================
+
   test:
     name: Test CloudForge Backend
     runs-on: ubuntu-latest
@@ -18,6 +26,7 @@ jobs:
         working-directory: backend
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -38,7 +47,17 @@ jobs:
       - name: Check backend imports
         run: |
           python -c "from app.main import app; print('CloudForge backend import successful')"
-            terraform:
+
+      - name: Build Docker image
+        run: |
+          docker build -t cloudforge-demo:ci ../app
+
+
+  # ==========================================
+  # Terraform Validation
+  # ==========================================
+
+  terraform:
     name: Validate Terraform
     runs-on: ubuntu-latest
 
@@ -53,6 +72,7 @@ jobs:
         working-directory: environments/${{ matrix.environment }}
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -60,10 +80,14 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Format Check
-        run: terraform fmt -check -recursive ../..
+        run: |
+          terraform fmt -check -recursive ../..
 
       - name: Terraform Init
-        run: terraform init -backend=false
+        run: |
+          terraform init -backend=false
 
       - name: Terraform Validate
-        run: terraform validate
+        run: |
+          terraform validate
+```
