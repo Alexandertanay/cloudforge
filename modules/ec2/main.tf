@@ -48,7 +48,7 @@ resource "aws_security_group" "this" {
 resource "aws_instance" "this" {
   ami           = var.ami_id
   instance_type = var.instance_type
-  key_name = "video-platform-key"
+  key_name      = "video-platform-key"
 
   subnet_id = var.subnet_id
 
